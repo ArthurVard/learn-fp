@@ -1,0 +1,38 @@
+name:           courses
+version:        0.1.0.0
+description:    Try code from haskell courses
+homepage:       https://github.com/arthurvard/learn-fp
+bug-reports:    https://github.com/arthurvard/learn-fp
+author:         Arthur Vardanyan
+maintainer:     example@example.com
+copyright:      2018 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+extra-source-files: ChangeLog.md
+                    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/arthurvard/learn-fp
+
+library
+  hs-source-dirs: src, .
+  build-depends: base >=4.7 && <5
+               , random
+               , QuickCheck
+  exposed-modules: Lib
+                 , StepikFP.ControlEffects
+  other-modules: Paths_courses
+  default-language: Haskell2010
+
+executable courses-exe
+  main-is: Main.hs
+  hs-source-dirs: app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends: base >=4.7 && <5
+               , courses
+  other-modules: Paths_courses
+  default-language: Haskell2010
