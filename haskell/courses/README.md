@@ -1,1 +1,0 @@
-# quickcheck-test-framework

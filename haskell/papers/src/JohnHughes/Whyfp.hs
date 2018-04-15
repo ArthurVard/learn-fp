@@ -1,126 +1,187 @@
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-
--- https://www.youtube.com/watch?v=Z35Tt87pIpg
--- https://github.com/Risto-Stevcev/haskell-church-encodings/blob/master/RankNTypes/Church.hs
--- https://en.wikipedia.org/wiki/Church_encoding
 module JohnHughes.Whyfp where
 
+-- | Glueing Functions Together
 
--- UnicodeSyntax #-
--- decr :: (∀ α . Nat α) -> Nat a
+-- | List processing examples
 
-import Prelude hiding (succ, pred, and, or, not, exp, div, head, tail)
+data List a = Nil | Cons a (List a) deriving (Show)
 
--- | Church logical operator
-
-type ChurchBool = forall a. a -> a -> a
-{-
--- Church Boolean (True)
--- λt.λf.t
-true :: ChurchBool
-true = \t -> \f -> t
-
-false :: ChurchBool
-false x y = y
-
-and p q = p q false
-
-or p q = p true q
-
-ifte bool a b = bool a b
+append' :: List a -> List a -> List a
+append' xs ys = foldr Cons ys xs
 
 
-type NumType = (Int -> Int) -> Int -> Int
+range :: Int -> List Int
+range 0 = Nil
+range n = append' (range (n-1)) (Cons n Nil)
 
-instance Show NumType where
-    show n = show $ n (+1) 0
+sum' :: List Int -> Int
+sum' Nil = 0
+sum' (Cons x xs) = x + sum' xs
 
--- zero :: NumType
-zero f x = x
+instance Functor List where
+  fmap f Nil = Nil
+  fmap f (Cons x xs) = Cons (f x) (fmap f xs)
 
--- one :: NumType
-one f x = f x
+instance Foldable List where
 
- -- two :: NumType
-two f x = f ( f x)
+    foldr f z = go
+      where
+        go Nil = z
+        go (Cons x xs ) =  x `f` go xs
 
--- >>> add two two
--- 4
-add m n f x = m f (n f x)
+    foldl _ z Nil = z
+    foldl f z (Cons x xs)= foldl f (f z x) xs
 
--- >>> mul (add two two) two
--- 8
-mul m n f x = m (n f) x
+reverse' :: List a -> List a
+reverse' =  foldr Cons  Nil
 
--- factorial
-fact :: (forall a. (a -> a) -> a -> a ) -> (a -> a) -> a -> a
-fact n =
-  ifte (isZero n)
-       one
-       (mul n (fact (decr n)))
+reverse'' :: [a] -> [a]
+reverse'' = foldr (:) []
 
+-- |
+-- >>> foldr (\acc a -> concat ["(", a, "+", acc, ")"]) "0" $ fmap show (range 10)
+-- "((((((((((0+10)+9)+8)+7)+6)+5)+4)+3)+2)+1)"
 
-isZero n = n (\_ -> false) true
-decr
-  :: (Num t1, Num a) =>
-     ((((((a -> a) -> t1 -> t2) -> t2) -> (p1 -> p2 -> p2) -> t3)
-       -> (t3 -> t4) -> p3 -> t4)
-      -> (p4 -> p5 -> p5) -> (p6 -> p6) -> (p7 -> p8 -> p8) -> t5)
-     -> t5
-
-decr n =
-    n (\m f x -> f (m incr zero))
-      zero
-      (\x -> x)
-      zero
-
-incr n = n (+1) 1
--}
+myfoldr            :: (a -> b -> b) -> b -> [a] -> b
+myfoldr k z = go
+          where
+            go []     = z
+            go (y:ys) = y `k` go ys
 
 
-type Logical a = a -> a -> a
-type Nat a = (a->a) -> a->a
+fib n = take n fib'
+  where
+    -- fib' :: Int -> Int
+    fib' = 1:1:zipWith (+) fib' (tail fib')
 
--- boolean
-true, false :: Logical a
-true x y = x
-false x y = y
+-- |
+-- >>> reduce (\a b -> concat ["(",a,"+", b, ")"]) "0" $ fmap show ls
+-- "(1+(2+(3+(4+(5+(6+(7+(8+(9+(10+0))))))))))"
+-- >>> foldr (\a b -> concat ["(",a,"+", b, ")"]) "0" $ fmap show ls
+-- "(1+(2+(3+(4+(5+(6+(7+(8+(9+(10+0))))))))))"
+-- >>> foldl (\a b -> concat ["(",a,"+", b, ")"]) "0" $ fmap show ls
+-- "((((((((((0+1)+2)+3)+4)+5)+6)+7)+8)+9)+10)"
 
-ifte :: Logical a -> a -> a -> a
-ifte = id
+reduce :: (a -> b -> b) -> b -> List a -> b
+reduce f z Nil = z
+reduce f z (Cons x xs) = f x (reduce f z xs)
 
-incr :: Nat a -> Nat a
-incr n f = f . n f
+ls :: List Int
+ls = range 10
 
--- integer “literals”
-zero, one, two, three :: Nat a
-three = incr two
-two   = incr one
-one   = incr zero
-zero _ = id
+prod :: List Int -> Int
+prod = reduce (*) 0
 
--- addition and multiplication
-add, mul :: Nat a -> Nat a -> Nat a
-add m n f = m f . n f
-mul m n f = m $ n f
+sum :: List Int -> Int
+sum = reduce (+) 0
 
--- zero check
-isZero :: (forall a. Nat a) -> Logical a
-isZero n = n (const false) true
+doubleall :: List Int -> List Int
+doubleall = reduce doubleandcons Nil
+  where
+    doubleandcons :: Int -> List Int -> List Int
+    doubleandcons num list = Cons (2*num) list
 
 
-type ANat = forall a . Nat a
+doubleandcons = fandcons double
+  where double n = 2*n
+        fandcons f el list = Cons (f el) list
 
-fact :: ANat -> Nat a
-fact n = ifte (isZero n)
-      one
-      (mul n $ fact (decr n))
+doubleall' = reduce (Cons . double) Nil
+  where
+    double n = 2 * n
 
-decr :: ANat -> Nat a
-decr n =
-    n (\m f x -> f (m incr zero))
-      zero
-      (\x -> x)
-      zero
+map :: (a->b) -> List a -> List b
+map f = reduce (Cons . f) Nil
+
+
+-- tree processing examples
+data Tree a = Node a (List(Tree a)) deriving (Show)
+
+
+-- redetree function analogous to reduce Recall that
+-- reduce took two arguments, something to replace cons with, and something to
+-- replace nil with. Since trees are built using node, cons and nil, redtree must
+-- take three arguments - something to replace each of these with. Since trees and
+-- lists are of different types, we will have to define two functions, one operating
+-- on each type.
+
+-- f replaces Node
+-- g replaces Cons
+-- z replaces Nil
+
+redtree :: (a -> b -> c) -> (c -> b -> b) -> b -> Tree a -> c
+redtree f g z (Node label subtrees) = f label (redtree' f g z subtrees)
+
+redtree' :: (a -> b -> c) -> (c -> b -> b) -> b -> List (Tree a) -> b
+redtree' f g z (Cons subtree rest) = g (redtree f g z subtree) (redtree' f g z rest)
+redtree' f g z Nil = z
+
+{--
+Node 1
+  (Cons (Node 2 Nil)
+   (Cnns (Node 3
+          (Cons (Node 4 Nil) Nil))
+    Nil))
+--}
+tree :: Tree Integer
+tree =
+  Node 1
+  (Cons (Node 2 Nil)
+   (Cons (Node 3
+          (Cons (Node 4 Nil) Nil))
+    Nil))
+
+add :: Integer -> Integer -> Integer
+add = (+)
+
+sumtree :: Tree Integer -> Integer
+sumtree = redtree add add 0
+
+-- | Taking the tree we wrote down earlier as an example, sumtree gives
+{--
+add 1
+  (add (add 2 0)
+   (add (add 3
+         (add (add 4 0) 0))
+    0))
+--}
+
+
+-- | A list of all the labels in a tree can be computed using
+
+labels :: Tree a -> List a
+labels = redtree Cons append' Nil
+-- | The same example gives
+{--
+Cons 1
+  (append' (Cons 2 Nil)
+   (append' (Cons 3
+            (append' (Cons 4 Nil) Nil))
+    Nil))
+--}
+
+
+-- | Finally, one can define a function analogous to map which applies a function f
+-- to all the labels in a tree:
+
+maptree :: (a -> a1) -> Tree a -> Tree a1
+maptree f = redtree (Node . f) Cons Nil
+
+{--
+(Node . f) 1
+  (Cons ( (Node . f) 2 Nil)
+   (Cnns ( (Node . f) 3
+          (Cons ((Node . f) 4 Nil) Nil))
+    Nil))
+--}
+
+
+-- | -------------------------------------------------------------------
+
+-- | 4 Glueing Programs Together
+
+-- 4.1 Newton-Raphson Square Roots
+
+-- | This algorithm computes the square root of a number N by starting
+-- from an initial approximation a0 and computing better and better ones using
+-- the rule a(n+1) = (a(n) + N/a(n)) / 2
