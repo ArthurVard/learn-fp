@@ -1,6 +1,6 @@
 Try code, samples from Haskell and FP  papers, books, video presentations,...
 
 
-* John Hughes
-** Why Function Programming Matters [[https://www.cs.kent.ac.uk/people/staff/dat/miranda/whyfp90.pdf][pdf]]
+John Hughes
+ - Why Function Programming Matters [[https://www.cs.kent.ac.uk/people/staff/dat/miranda/whyfp90.pdf][pdf]]
    - [[https://www.youtube.com/watch?v=Z35Tt87pIpg][Erlang Factory SF 2016 - Keynote - John Hughes - Why Functional Programming Matters]]
