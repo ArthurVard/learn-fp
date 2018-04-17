@@ -24,7 +24,7 @@ library
                , random
                , QuickCheck
   exposed-modules: Lib
-                 , StepikFP.ControlEffects
+                 , StepikFP.ControlEffects.Foldable
   other-modules: Paths_courses
   default-language: Haskell2010
 
