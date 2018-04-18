@@ -1,8 +1,10 @@
+{-# LANGUAGE TypeOperators#-}
 module StepikFP.ControlEffects.Foldable where
 
 import Prelude hiding(Foldable, foldr, foldl, fold, foldMap, sum, product)
 import Data.Foldable hiding(Foldable, foldl, foldr, fold, foldMap, sum, product)
-import Data.Monoid
+import Data.Monoid hiding(Endo, appEndo, Dual, getDual)
+import Data.Monoid((<>), First)
 import Data.Char(isDigit)
 
 class Foldable t where
@@ -34,6 +36,12 @@ class Foldable t where
     maximum :: Ord a => t a -> a
     minimum :: Ord a => t a -> a
     elem :: Eq a => t a -> Bool
+
+    foldr' :: (a -> b -> b) -> b -> t a -> b
+    foldl' :: (b -> a -> b) -> b -> t a -> b
+
+    foldr1 :: (a -> a -> a) -> t a -> a
+    foldl1 :: (a -> a -> a) -> t a -> a
 
 -- | Foldable instance for []
 instance Foldable [] where
@@ -120,8 +128,6 @@ instance Foldable Tree where
     foldr f z (Branch l x r) = (\i -> (foldr f i l)) . f x . (\i -> (foldr f i r)) $ z
 --    foldr f z (Branch l x r) = foldr f (f x (foldr f z r)) l -- in-order   from left  to right
 --    foldr f z (Branch l x r) = foldr f (f x (foldr f z l)) r -- in-order   from right to left
---    foldr f z (Branch l x r) = foldr f ((foldr f z r)) l   -- post-order from left  to right
---    foldr f z (Branch l x r) = foldr f (f x (foldr f z l)) r -- post-order from right to left
 
     foldl f z Nil = z
     foldl f z (Branch l x r) = f (foldl f (foldl f z l) r) x
@@ -199,3 +205,101 @@ prodM ::  Product Integer
 prodM = foldMap Product [1,2,3,4]
 
 treeM = foldMap Sum tree
+
+
+
+-- endomorphism
+newtype Endo a = Endo {appEndo :: a -> a}
+
+-- >>> appEndo (Endo (+2)) 7
+-- 9
+-- >>> appEndo (Endo (+2) `mappend` Endo (+3) `mappend` Endo (+4)) 1
+-- 10
+-- >>> appEndo (Endo (+2) <>  Endo (+3) <> Endo (+4)) 1
+instance Monoid (Endo a) where
+    mempty = Endo id
+    Endo f `mappend` Endo g = Endo (f . g)
+
+
+-- Ex 3.
+-- >>> e1 = mkEndo [(+5),(*3),(^2)]
+-- >>> appEndo e1 2
+-- 17
+-- >>> e2 = mkEndo (42,(*3))
+-- >>> appEndo e2 2
+-- 6
+mkEndo :: Foldable t => t (a -> a) -> Endo a
+mkEndo fs = Endo $ foldr (.) id fs
+
+{-
+foldMap :: Monoid m => (a -> m) -> t a -> m
+foldMap f cont = foldr (mappend . f) mempty cont
+
+-- foldr-ի ներկայացումը foldMap-ի միջոցով, տեսնենք որ տիպերով համապատասխանում են
+foldr_ :: (a -> b -> b) -> b -> t a -> b
+foldr_ f ini cont = appEndo (foldMap (Endo . f) cont) ini
+
+-- | տեսնենք տիպային համապատասխանությունը:
+f :: a -> (b -> b)
+Endo :: (b -> b) -> Endo b
+appEndo :: Endo b -> (b -> b)
+(Endo . f) :: a -> Endo b
+ini :: b
+-- քանի որ (Endo b) հանդիսանում է monoid, հետևաբար (a -> Endo b) կարող է փոխանցվել foldMap-ին (a -> m b)
+foldMap (Endo . f) cont :: Endo b
+
+-- | prrove:
+foldr f ini [x1,x2,x3]
+  = f x1 (f x2 (f x3 ini))    -- foldr definition
+  = f x1 (( f x2 . f x3) ini) -- composition
+  = (f x1 . f x2 . f x2 ) ini -- composition, every (f xi :: b -> b) is Endomorphism
+  = appEndo (Endo (f x1) <> Endo (f x2) <> Endo (f x3)) ini -- composition
+  = appEndo ((Endo . f) x1 <> (Endo . f) x2 <> (Endo . f) x3) ini
+-}
+
+
+-- Մենք արդեն կարողանում ենք foldr արտահայտել foldMap-ով, իսկ foldMap-ը foldr-ով, հիմա փորձենք արտահայտել
+-- ձախ փաթույթը (foldl) foldr-ի կամ foldMap-ի միջոցով:
+
+-- | foldl-ը արտահայտենք foldMap-ի միջոցով
+-- ծանոթանանք ևս մեկ մոնոիդի հետ, որը կոչվում է Dual
+
+newtype Dual a = Dual { getDual :: a } deriving (Show)
+
+-- >>> foldMap First [Nothing, Just 3, Just 5, Nothing]
+-- First {getFirst = Just 3}
+-- >>> foldMap (Dual . First) [Nothing, Just 3, Just 5, Nothing]
+-- Dual {getDual = First {getFirst = Just 5}}
+-- >>> appEndo (Endo (+5) <> Endo (*3)) 2
+-- 11
+-- >>> (appEndo . getDual) ((Dual . Endo)(+5) <> (Dual . Endo)(*3)) 2
+-- 21
+instance Monoid a => Monoid (Dual a) where
+    mempty = Dual mempty
+    Dual x `mappend` Dual y = Dual (y `mappend` x)
+
+{-
+-- foldr-ի ներկայացումը foldMap-ի միջոցով, տեսնենք որ տիպերով համապատասխանում են
+foldr :: (a -> b -> b) -> b -> t a -> b
+foldr f ini cont = appEndo (          foldMap (       Endo .       f) cont) ini
+
+-- foldl-ի ներկայացումը foldMap-ի միջոցով, տեսնենք որ տիպերով համապատասխանում են
+foldl :: (b -> a -> b) -> b -> t a -> b
+foldl f ini cont = appEndo ( getDual (foldMap (Dual . Endo . flip  f) cont) ini
+
+
+-}
+
+
+-- Ex 4.
+-- представителем класса типов Foldable при условии,
+-- что аргументы композиции являются представителями Foldable.
+infixr 9 |.|
+newtype (|.|) f g a = Cmps { getCmps :: f (g a) }  deriving (Eq,Show)
+
+-- >>> maximum $ Cmps [Nothing, Just 2, Just 3]
+-- >>> length $ Cmps [[1,2], [], [3,4,5,6,7]]
+-- https://github.com/purescript/purescript-functors/blob/master/src/Data/Functor/App.purs
+instance (Foldable f, Foldable g) => Foldable ((|.|) f g) where
+--    foldMap :: Monoid m => (a -> m) -> t a -> m
+    foldMap f (Cmps h) = foldMap (foldMap f) h
