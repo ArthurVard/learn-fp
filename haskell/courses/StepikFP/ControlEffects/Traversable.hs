@@ -1,3 +1,4 @@
+-- https://haskell-at-work.com/episodes/2018-01-22-domain-modelling-with-haskell-generalizing-with-foldable-and-traversable.html
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE InstanceSigs #-}
 module StepikFP.ControlEffects.Traversable where
