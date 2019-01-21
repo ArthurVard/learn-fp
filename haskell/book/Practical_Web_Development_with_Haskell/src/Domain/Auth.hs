@@ -47,7 +47,7 @@ data Auth = Auth
 
 newtype Email = Email
     { emailRaw :: Text
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Ord)
 
 newtype Password = Password
     { passwordRaw :: Text
