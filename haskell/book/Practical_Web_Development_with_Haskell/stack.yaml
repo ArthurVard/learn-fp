@@ -1,3 +1,4 @@
 resolver: lts-13.3
 
-extra-deps: []
+extra-deps:
+- guid-0.1.0

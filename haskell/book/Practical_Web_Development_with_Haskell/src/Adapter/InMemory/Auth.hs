@@ -3,6 +3,7 @@
 module Adapter.InMemory.Auth where
 
 import ClassyPrelude
+import Data.GUID
 import Data.Has
 import Data.Monoid
 
@@ -52,7 +53,19 @@ notifyEmailVerification :: InMemory r m => Email -> VerificationCode -> m ()
 notifyEmailVerification = undefined
 
 newSession :: InMemory r m => UserId -> m SessionId
-newSession = undefined
+newSession uId = do
+  tvar <- asks getter
+  sId <- liftIO $ ((tshow uId) <>) <$> genText
+  atomically $ do
+     state <- readTVar tvar
+     let sessions = stateSessions state
+         newSessions = insertMap sId uId sessions
+         newState = state { stateSessions = newSessions }
+     writeTVar tvar newState
+     return sId
+
 
 findUserIdBySessionId :: InMemory r m => SessionId -> m (Maybe UserId)
-findUserIdBySessionId = undefined
+findUserIdBySessionId sId = do
+  tvar <- asks getter
+  liftIO $ lookup sId . stateSessions <$> readTVarIO tvar

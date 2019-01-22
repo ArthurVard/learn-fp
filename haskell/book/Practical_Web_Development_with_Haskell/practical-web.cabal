@@ -33,6 +33,7 @@ library
                , text >= 1.2.3.1
                , data-has
                , containers
+               , guid
   default-language: Haskell2010
   default-extensions: NoImplicitPrelude
                       OverloadedStrings
