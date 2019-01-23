@@ -1,0 +1,7 @@
+*  [[https://stepik.org/course/75/syllabus][Функциональное программирование на языке Haskell]]
+** 5 Монады
+*** [[https://stepik.org/lesson/8432/step/1?unit=2743][5.1 Класс типов Functor и законы для него]]
+*** [[https://stepik.org/lesson/8437/step/1?unit=1572][5.2 Определение монады]]
+
+
+* [[https://stepik.org/course/693/syllabus][Функциональное программирование на языке Haskell (часть 2)]]
