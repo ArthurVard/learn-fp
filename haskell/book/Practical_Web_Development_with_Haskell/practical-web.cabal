@@ -21,6 +21,7 @@ source-repository head
 library
   exposed-modules: Domain.Auth
   other-modules: Paths_practical_web
+                 Lib
                  Domain.Validation
                  Adapter.InMemory.Auth
   hs-source-dirs: src
