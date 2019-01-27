@@ -1,11 +1,14 @@
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MonadFailDesugaring        #-}
+{-# LANGUAGE OverloadedStrings          #-}
 module Lib where
 
 import ClassyPrelude
+import Control.Monad.Except
 import Control.Monad.IO.Class
 import Control.Monad.Reader
+import Data.Either
 
 import qualified Control.Monad.Catch as E
 import qualified Control.Monad.Fail  as Fail
@@ -61,17 +64,45 @@ someFunc = do
            , PG.configStripeCount = 2
            , PG.configMaxOpenConnPerStripe = 5
            , PG.configIdleConnTimeout = 10
+           , PG.config'host = "localhost"
+           , PG.config'port = 5432
+           , PG.config'dbname = "practical_web"
+           , PG.config'dbuser = "pweb"
+           , PG.config'dbpassword = "123"
            }
 
 
 action :: App ()
 action = do
-   let email = either undefined id $ mkEmail "ecky@test.com"
+   let email = either undefined id $ mkEmail "eckqy11@test.com"
        passw = either undefined id $ mkPassword "1234ABCDefgh"
        auth = Auth email passw
+   res <-  addAuth auth
+   case res of
+     Left er -> print  $ show er
+     Right (_, vCode) -> do
+              let email = authEmail auth
+--           lift $ notifyEmailVerification email vCode
+              _ <- verifyEmail vCode
+              return ()
+   Right session <- login auth
+   Just uId <- resolveSessionId session
+   Just registeredEmail <- getUser uId
+   print (session, uId, registeredEmail)
+
+
+-- | in memory action
+actionM :: App ()
+actionM = do
+   let email = either undefined id $ mkEmail "eckqy1@test.com"
+       passw = either undefined id $ mkPassword "1234ABCDefgh"
+       auth = Auth email passw
+   liftIO $ print auth
    register auth
-   Just vCode <- M.getNotificationsForEmail email
-   verifyEmail vCode
+   code <- M.getNotificationsForEmail email
+   case code of
+     Nothing    -> error (show email ++ "---err")
+     Just vCode -> verifyEmail vCode
    Right session <- login auth
    Just uId <- resolveSessionId session
    Just registeredEmail <- getUser uId

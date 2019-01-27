@@ -14,6 +14,8 @@ import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Migration
 import Database.PostgreSQL.Simple.SqlQQ
 
+import GHC.Word (Word16)
+
 import qualified Control.Monad.Catch as E
 import qualified Domain.Auth         as D
 -------------------------------------------------------------------------------
@@ -38,11 +40,17 @@ data Config = Config
  , configStripeCount          :: Int
  , configMaxOpenConnPerStripe :: Int
  , configIdleConnTimeout      :: NominalDiffTime
+
+ , config'host                :: String
+ , config'port                :: Word16
+ , config'dbname              :: String
+ , config'dbuser              :: String
+ , config'dbpassword          :: String
  }
 
 
 withPool :: Config -> (State -> IO a) -> IO a
-withPool Config{..} action =
+withPool cfg@Config{..} action =
     bracket initPool cleanPool action
     where
       initPool = createPool openConn closeConn
@@ -51,7 +59,8 @@ withPool Config{..} action =
                  configMaxOpenConnPerStripe
 
       cleanPool = destroyAllResources
-      openConn = connectPostgreSQL configUrl
+--      openConn = connectPostgreSQL configUrl
+      openConn = newConn cfg
       closeConn = close
 
 
@@ -60,6 +69,17 @@ withState cfg action =
      withPool cfg $ \state -> do
        migrate state
        action state
+
+
+newConn :: Config -> IO Connection
+newConn Config{..} = connect defaultConnectInfo
+                     { connectHost     = config'host
+                     , connectPort     = config'port
+                     , connectDatabase = config'dbname
+                     , connectUser     = config'dbuser
+                     , connectPassword = config'dbpassword
+                     }
+
 
 
 type PG r m = (Has State r, MonadReader r m, MonadIO m, E.MonadThrow m)
@@ -81,7 +101,7 @@ addAuth (D.Auth email pass) = do
   -- generate vCode
   vCode <- liftIO $ do
     r <- genText
-    return $ (tshow rawEmail) <> "_" <> r
+    return $ rawEmail <> "_" <> r
   -- issue query
   result <- withConn $ \conn ->
      try $ query conn qry (rawEmail, rawPassw, vCode)
@@ -96,7 +116,7 @@ addAuth (D.Auth email pass) = do
   where
      qry = [sql| insert into auths
                 (email, pass, email_verification_code, is_email_verified)
-                values (?, crypt(?, gen_salt('bf')), ?, 'f') returning id"
+                values (?, crypt(?, gen_salt('bf')), ?, 'f') returning id
                 |]
 
 
