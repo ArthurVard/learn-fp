@@ -67,8 +67,8 @@ data RegistrationError  = RegistrationErrorEmailTaken
 type VerificationCode = Text
 
 class Monad m => AuthRepo m where
-    addAuth :: Auth -> m (Either RegistrationError VerificationCode)
-    setEmailAsVerified :: VerificationCode -> m (Either EmailVerificationError ())
+    addAuth :: Auth -> m (Either RegistrationError (UserId, VerificationCode))
+    setEmailAsVerified :: VerificationCode -> m (Either EmailVerificationError (UserId, Email))
     findUserByAuth :: Auth -> m (Maybe (UserId, Bool))
     findEmailFromUserId :: UserId -> m (Maybe Email)
 
@@ -129,7 +129,7 @@ register ::
     (AuthRepo m, EmailVerificationNotif m) =>
     Auth -> m (Either RegistrationError ())
 register auth = runExceptT $ do
-                  vCode <- ExceptT $ addAuth auth
+                  (_, vCode) <- ExceptT $ addAuth auth
                   let email = authEmail auth
                   lift $ notifyEmailVerification email vCode
 
@@ -137,14 +137,14 @@ register auth = runExceptT $ do
 instance AuthRepo IO where
     addAuth (Auth email pass) = do
                        putStrLn $ "adding auth: " <> rawEmail email
-                       return $ Right "fake verification code"
+                       return $ Right (-1, "fake verification code")
 
 instance EmailVerificationNotif IO where
     notifyEmailVerification email vcode =
         putStrLn $ "Notify " <> rawEmail email <> " - " <> vcode
 
 
-verifyEmail :: AuthRepo m => VerificationCode -> m (Either EmailVerificationError ())
+verifyEmail :: AuthRepo m => VerificationCode -> m (Either EmailVerificationError (UserId, Email))
 verifyEmail = setEmailAsVerified
 
 

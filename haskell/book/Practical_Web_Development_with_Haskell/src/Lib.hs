@@ -7,16 +7,20 @@ import ClassyPrelude
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 
-import qualified Control.Monad.Fail as Fail
+import qualified Control.Monad.Catch as E
+import qualified Control.Monad.Fail  as Fail
 
-import qualified Adapter.InMemory.Auth as M
-import           Domain.Auth
+import qualified Adapter.InMemory.Auth   as M
+import qualified Adapter.PostgreSQL.Auth as PG
+
+import Domain.Auth
 
 
-type State = TVar M.State
+type State = (PG.State, TVar M.State)
 newtype App a = App
     { unApp :: ReaderT State IO a
-    } deriving (Applicative, Functor, Monad, MonadReader State, MonadIO, Fail.MonadFail)
+    } deriving ( Applicative, Functor, Monad, MonadReader State, MonadIO
+               , Fail.MonadFail, E.MonadThrow)
 
 
 
@@ -30,10 +34,10 @@ run state = flip runReaderT state . unApp
 -- These instances are the glue between in-memory implementation and domain logic.
 -- In general, we just delegate the calls to in-memory implementations.
 instance AuthRepo App where
-    addAuth = M.addAuth
-    setEmailAsVerified = M.setEmailAsVerified
-    findUserByAuth = M.findUserByAuth
-    findEmailFromUserId = M.findEmailFromUserId
+    addAuth = PG.addAuth
+    setEmailAsVerified = PG.setEmailAsVerified
+    findUserByAuth = PG.findUserByAuth
+    findEmailFromUserId = PG.findEmailFromUserId
 
 instance EmailVerificationNotif App where
     notifyEmailVerification = M.notifyEmailVerification
@@ -48,8 +52,17 @@ instance SessionRepo App where
 --  let’s write a simple program using it to see it in action.
 someFunc :: IO ()
 someFunc = do
-   state <- newTVarIO M.initialState
-   run state action
+   mState <- newTVarIO M.initialState
+--   run state action
+   PG.withState pgCfg $ \pgState -> run (pgState, mState) action
+ where
+   pgCfg = PG.Config
+           { PG.configUrl = "postgresql://localhost/hauth"
+           , PG.configStripeCount = 2
+           , PG.configMaxOpenConnPerStripe = 5
+           , PG.configIdleConnTimeout = 10
+           }
+
 
 action :: App ()
 action = do

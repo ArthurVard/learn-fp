@@ -2,3 +2,4 @@ resolver: lts-13.3
 
 extra-deps:
 - guid-0.1.0
+- postgresql-simple-migration-0.1.14.0
