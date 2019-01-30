@@ -8,6 +8,12 @@ import Network.Wai.Middleware.RequestLogger
 import Network.Wai.Middleware.Static
 import Web.Cookie
 import Web.Scotty.Trans
+
+import           Text.Digestive.Form  ((.:))
+import qualified Text.Digestive.Form  as DF
+import qualified Text.Digestive.Types as DT
+
+import Domain.Auth
 -------------------------------------------------------------------------------
 --
 
@@ -96,3 +102,16 @@ getCookie key = do
 
 -------------------------------------------------------------------------------
 -- Input Validation
+
+
+authForm :: (Monad m) => DF.Form [Text] m Auth
+authForm =
+    Auth <$> "email" .: emailForm
+         <*> "password" .: passwordForm
+ where
+   emailForm = DF.validate (toResult . mkEmail) (DF.text Nothing)
+   passwordForm = DF.validate (toResult . mkPassword) (DF.text Nothing)
+
+
+toResult :: Either e a -> DT.Result e a
+toResult = either DT.Error DT.Success
