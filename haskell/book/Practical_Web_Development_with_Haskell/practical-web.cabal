@@ -27,6 +27,8 @@ library
                  Adapter.PostgreSQL.Auth
                  Adapter.Redis.Auth
                  Adapter.RabbitMQ.Common
+                 Adapter.HTTP.Common
+                 Adapter.HTTP.API.Auth
   hs-source-dirs: src
   build-depends: aeson
                , base >=4.7 && <5
@@ -48,6 +50,13 @@ library
                , hedis
                , amqp
                , scotty
+               , http-types
+               , wai-extra
+               , wai-middleware-static
+               , cookie
+               , bytestring
+               , digestive-functors
+               , digestive-functors-aeson
   default-language: Haskell2010
   default-extensions: NoImplicitPrelude
                       OverloadedStrings
