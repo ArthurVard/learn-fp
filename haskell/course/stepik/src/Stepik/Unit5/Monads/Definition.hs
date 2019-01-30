@@ -1,4 +1,4 @@
-module Stepik.Monads.Definition where
+module Stepik.Unit5.Monads.Definition where
 
 import Prelude hiding (($), (&))
 

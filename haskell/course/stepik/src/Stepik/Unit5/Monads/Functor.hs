@@ -1,4 +1,4 @@
-module Stepik.Monads.Functor where
+module Stepik.Unit5.Monads.Functor where
 
 import Prelude hiding (Functor, fmap)
 
