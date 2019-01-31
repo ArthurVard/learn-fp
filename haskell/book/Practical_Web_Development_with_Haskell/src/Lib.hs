@@ -2,7 +2,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MonadFailDesugaring        #-}
 {-# LANGUAGE OverloadedStrings          #-}
-module Lib where
+module Lib (
+withState
+, run
+           )where
 
 import ClassyPrelude
 import Control.Monad.Except
@@ -13,6 +16,7 @@ import Data.Either
 import qualified Control.Monad.Catch as E
 import qualified Control.Monad.Fail  as Fail
 
+import qualified Adapter.HTTP.Main       as HTTP
 import qualified Adapter.InMemory.Auth   as M
 import qualified Adapter.PostgreSQL.Auth as PG
 import qualified Adapter.Redis.Auth      as Redis
@@ -52,6 +56,38 @@ instance SessionRepo App where
     findUserIdBySessionId = Redis.findUserIdBySessionId
 -- instance Fail.MonadFial App where
 
+withState :: (Int -> State -> IO ()) -> IO ()
+withState action = do
+    mState <- newTVarIO M.initialState
+    PG.withState pgCfg $ \pgState ->
+        Redis.withState redisCfg $ \redisState ->
+            let state =  (pgState, redisState, mState)
+            in action port state
+
+ where
+--   mqCfg = "amqp://guest:guest@localhost:5672/%2F"
+   redisCfg = "redis://localhost:6379/0"
+   pgCfg = PG.Config
+           { PG.configUrl = "postgresql://localhost/hauth"
+           , PG.configStripeCount = 2
+           , PG.configMaxOpenConnPerStripe = 5
+           , PG.configIdleConnTimeout = 10
+           , PG.config'host = "localhost"
+           , PG.config'port = 5432
+           , PG.config'dbname = "practical_web"
+           , PG.config'dbuser = "pweb"
+           , PG.config'dbpassword = "123"
+           }
+   port = 3008
+
+
+main :: IO ()
+main = withState $  \port state -> do
+         let runner = run state
+         HTTP.main port runner
+
+
+
 
 --  let’s write a simple program using it to see it in action.
 someFunc :: IO ()
@@ -74,6 +110,7 @@ someFunc = do
            , PG.config'dbuser = "pweb"
            , PG.config'dbpassword = "123"
            }
+   port = 3008
 
 
 action :: App ()
