@@ -14,9 +14,12 @@ library
                  Stepik.Unit5.Monads.Definition
                  Stepik.Unit5.Monads.Identity
                  Stepik.Unit5.Exercises.Tasks5_4
+                 Stepik.Unit5.Monads.MonadIO
+                 Stepik.Unit5.Exercises.Tasks5_5
   -- other-extensions:
   build-depends:       base >=4.11 && <5
                      , QuickCheck
+                     , directory
   hs-source-dirs:      src
   default-language:    Haskell2010
 
