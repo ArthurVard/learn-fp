@@ -22,6 +22,8 @@ trace = do
 log' :: String -> (String, ())
 log' str = (str, ())
 
+tell :: Monoid w => w -> Writer w ()
+tell s = Writer ((), s)
 
 instance Functor (Writer w) where
     fmap f m = let (a, l) =  runWriter m
