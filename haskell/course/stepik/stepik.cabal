@@ -16,6 +16,11 @@ library
                  Stepik.Unit5.Exercises.Tasks5_4
                  Stepik.Unit5.Monads.MonadIO
                  Stepik.Unit5.Exercises.Tasks5_5
+                 Stepik.Unit5.Monads.MonadReader
+                 Stepik.Unit5.Monads.MonadWriter
+                 Stepik.Unit5.Exercises.Tasks5_7
+                 Stepik.Unit5.Monads.MonadState
+                 Stepik.Unit5.Exercises.Tasks5_8
   -- other-extensions:
   build-depends:       base >=4.11 && <5
                      , QuickCheck

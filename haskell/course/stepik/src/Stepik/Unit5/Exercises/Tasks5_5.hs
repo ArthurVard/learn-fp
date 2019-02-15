@@ -21,4 +21,4 @@ removeFilesBySubstring :: FilePath -> String -> IO ()
 removeFilesBySubstring path subStr = do
 --  getDirectoryContents path >>= mapM_ removeFile . filterM (return $ isInfixOf subStr)
   withCurrentDirectory path $ do
-  mapM_ (\f -> removeFile f >> putStrLn ("Removing file: " ++ f)) . filter (isInfixOf subStr) =<< getDirectoryContents path
+                       mapM_ (\f -> removeFile f >> putStrLn ("Removing file: " ++ f)) . filter (isInfixOf subStr) =<< getDirectoryContents path
