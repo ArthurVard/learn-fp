@@ -1,5 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
-module Stepik.Unit5.Applicatives.ApplicativeFunctor where
+module Stepik.Unit6.Applicatives.ApplicativeFunctor where
 
 import Prelude hiding ((<*>))
 {-
