@@ -42,3 +42,21 @@ instance Applicative ZipList where
 -- if we change pure to
 -- pure x = XipList (repeat x)
 -- then all lows will be hold
+
+
+-- | Either as applicative
+{-
+instance Applicative (Either e) where
+   pure           = Right
+   Left e <*> _   = Left e
+   Right f <*>  r = fmap f r
+-}
+
+
+-- | (,) as  applicative
+
+{-
+instance Monoid e => Appicative ((,) e) where
+   pure x = (mempty, x)
+   (u, g) <*> (v, x) = (u `mappend` v, g x)
+-}

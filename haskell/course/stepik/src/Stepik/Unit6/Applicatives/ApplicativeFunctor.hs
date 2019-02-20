@@ -146,3 +146,15 @@ pure (.) <*> u <*> v <*> cont == u <*> (v <*> cont)
 
 
 -}
+
+
+
+
+{-
+instance Applicative ((->) e) where
+   pure a = \_ -> a
+   (<*>) :: (e -> (a -> b)) -> (e -> a) -> (e -> b)
+    (<*>) g h = \e -> g e (h e)
+
+
+-}
