@@ -21,10 +21,21 @@ library
                  Stepik.Unit5.Exercises.Tasks5_7
                  Stepik.Unit5.Monads.MonadState
                  Stepik.Unit5.Exercises.Tasks5_8
+
+                 -- haskell II course
+                 Stepik.Unit6.Applicatives.ApplicativeExamples
+                 Stepik.Unit6.Applicatives.ApplicativeFunctor
+                 Stepik.Unit6.Applicatives.Parsec
+                 Stepik.Unit6.Applicatives.ApplicativeParser
+
+                 Stepik.Unit6.Exercises.Tasks6_1
+                 Stepik.Unit6.Exercises.Tasks6_2
+
   -- other-extensions:
   build-depends:       base >=4.11 && <5
                      , QuickCheck
                      , directory
+                     , parsec
   hs-source-dirs:      src
   default-language:    Haskell2010
 

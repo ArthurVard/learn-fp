@@ -1,4 +1,4 @@
-module Stepik.Unit5.Exercises.Tasks6_1 where
+module Stepik.Unit6.Exercises.Tasks6_1 where
 
 -------------------------------------------------------------------------------
 -- Exercise 6.1.1

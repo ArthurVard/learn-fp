@@ -1,7 +1,8 @@
-module Stepik.Unit5.Exercises.Tasks6_2 where
+{-# LANGUAGE RankNTypes #-}
+module Stepik.Unit6.Exercises.Tasks6_2 where
 
+import Control.Applicative                           ((<**>))
 import Stepik.Unit6.Applicatives.ApplicativeExamples
-
 -------------------------------------------------------------------------------
 -- Exercise 6.2.1
 
@@ -90,3 +91,75 @@ instance Functor (Arr3 e1 e2 e3) where
 instance Applicative (Arr3 e1 e2 e3) where
     pure a = Arr3 $ \_ _ _ -> a
     (Arr3 f) <*> (Arr3 h) = Arr3 $ \e1 e2 e3 -> f e1 e2 e3 (h e1 e2 e3)
+
+
+
+
+-------------------------------------------------------------------------------
+-- Exercise 6.2.4
+
+{-
+В следующих шести примерах вашей задачей будет привести такие контрпримеры
+для стандартных типов данных, для которых они существуют.
+Следует заменить аппликативное выражение в предложении in на выражение
+того же типа, однако дающее разные результаты при вызовах с
+(<??>) = (<**>) и (<??>) = (<*?>). Проверки имеют вид exprXXX (<**>) == exprXXX (<*?>)
+для различных имеющихся XXX. Если вы считаете, что контрпримера
+не существует, то менять ничего не надо.
+
+infixl 4 <**>
+(<**>) :: Applicative f => f a -> f (a -> b) -> f b
+(<**>) = liftA2 (flip ($))
+-}
+
+
+infixl 4 <*?>
+(<*?>) :: Applicative f => f a -> f (a -> b) -> f b
+(<*?>) = flip (<*>)
+
+exprMaybe :: (forall a b . Maybe a -> Maybe (a -> b) -> Maybe b) -> Maybe Int
+exprMaybe op =
+  let (<??>) = op
+      infixl 4 <??>
+  in Just 5 <??> Just (+2) -- place for counterexample
+
+exprList :: (forall a b . [a] -> [a -> b] -> [b]) -> [Int]
+exprList op =
+  let (<??>) = op
+      infixl 4 <??>
+  in [1,2] <??> [(+3),(+6)] -- place for counterexample
+
+exprZipList :: (forall a b . ZipList a -> ZipList (a -> b) -> ZipList b) -> ZipList Int
+exprZipList op =
+  let (<??>) = op
+      infixl 4 <??>
+  in ZipList [1,3, 5] <??> ZipList [(\a  -> a - 3), (+ 4), id]  -- place for counterexample
+
+exprEither :: (forall a b . Either String a -> Either String (a -> b) -> Either String b) -> Either String Int
+exprEither op =
+  let (<??>) = op
+      infixl 4 <??>
+  in Left "AA" <??> Right (+1)  -- place for counterexample
+
+exprPair :: (forall a b . (String,a) -> (String,a -> b) -> (String,b)) -> (String,Int)
+exprPair op =
+  let (<??>) = op
+      infixl 4 <??>
+  in ("AA", 3) <??> ("BB",(+1))  -- place for counterexample
+
+exprEnv :: (forall a b . (String -> a) -> (String -> (a -> b)) -> (String -> b)) -> (String -> Int)
+exprEnv op =
+  let (<??>) = op
+      infixl 4 <??>
+  in length <??> (\_ -> (+5))  -- place for counterexample
+
+
+test_all = [ exprMaybe (<**>) == exprMaybe (<*?>)
+           , exprList (<**>) == exprList (<*?>)
+           , exprZipList(<**>) == exprZipList (<*?>)
+           , exprEither (<**>) == exprEither (<*?>)
+           , exprPair (<**>) == exprPair (<*?>)
+     --      , exprEnv (<**>) == exprEnv (<*?>)
+           ]
+
+-- run_all = sequence test_all

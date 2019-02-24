@@ -29,7 +29,7 @@ instance Applicative [] where
 -- | another semantix of applicative for [] type
 
 newtype ZipList a = ZipList {getZipList :: [a]}
-
+    deriving (Show, Eq, Ord)
 instance Functor ZipList where
     fmap f (ZipList xs) = ZipList (fmap f xs)
 
