@@ -30,6 +30,7 @@ library
 
                  Stepik.Unit6.Exercises.Tasks6_1
                  Stepik.Unit6.Exercises.Tasks6_2
+                 Stepik.Unit6.Exercises.Tasks6_4
 
   -- other-extensions:
   build-depends:       base >=4.11 && <5
