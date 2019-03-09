@@ -150,5 +150,7 @@ many0 p = (:) <$> p <*> many0 p <|> pure []
 
 -- Потребляйте один экземпляр p, без альтернативы в случае сбоя
 -- Потребляйте 0 или более экземпляров p, возвращая [] когда это не удается.
+-- Consume one instance of p, without an alternative in case that fails
+-- Consume 0 or more instances of p, returning [] when that fails.
 many1 :: Prs a -> Prs [a]
 many1 p = (:) <$> p <*> many0 p
