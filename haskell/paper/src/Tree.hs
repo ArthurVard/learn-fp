@@ -1,8 +1,8 @@
 module Tree where
 
-import Control.Monad
-import Test.QuickCheck
-import MonadLows
+import           Control.Monad
+import           JohnHughes.MonadLows
+import           Test.QuickCheck
 
 data Tree a = Leaf a | Branch (Tree a) (Tree a) deriving (Eq, Show)
 
@@ -21,7 +21,7 @@ prop_TreeRightUnit = prop_RightUnit :: PropRightUnit Tree
 prop_TreeAssoc = prop_Assoc :: PropAssoc Tree
 
 treeMap :: (t -> a) -> Tree t -> Tree a
-treeMap f (Leaf a) = Leaf (f a)
+treeMap f (Leaf a)     = Leaf (f a)
 treeMap f (Branch l r) = Branch (treeMap f l) (treeMap f r)
 
 instance Functor Tree where

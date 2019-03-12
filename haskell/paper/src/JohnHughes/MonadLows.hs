@@ -1,7 +1,6 @@
-
 module JohnHughes.MonadLows where
-import Test.QuickCheck
-import Test.QuickCheck.Function
+import           Test.QuickCheck
+import           Test.QuickCheck.Function
 
 {-
 Instances of Monad should satisfy the following laws:
