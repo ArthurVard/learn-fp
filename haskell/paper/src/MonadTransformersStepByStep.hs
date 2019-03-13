@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module MonadTransformersStepByStep where
 
 
@@ -6,7 +9,12 @@ import           Control.Monad.Identity
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Control.Monad.Writer
+
+-- import           Control.Monad.Error    (Error (..))
+
 import           Data.Maybe
+
+import           Data.Text              (pack)
 
 import qualified Data.Map               as Map
 
@@ -240,3 +248,85 @@ eval3 (App e1 e2 ) =
 
 
 run3 = runEval3 Map.empty (eval3 exampleExp)
+
+
+-----------------------------------------------------------------
+-- A Few Words on Monad Transformers
+
+-- |
+
+newtype ErrorT e m a = ErrorT { runErrorT :: m (Either e a) }
+
+instance (Functor m) => Functor (ErrorT e m) where
+    fmap f m = ErrorT $ fmap (fmap f) (runErrorT m)
+
+instance (Monad m, Applicative m) => Applicative (ErrorT e m) where
+    pure = return
+    (<*>) = ap -- fmap f m = ErrorT $ fmap (fmap f) (runErrorT m)
+
+instance (Monad m) => Monad (ErrorT e m) where
+    return a = ErrorT $ return (Right a)
+    m >>= k = ErrorT $ do
+                a <- runErrorT m
+                case a of
+                  Left l  -> return (Left l)
+                  Right r -> runErrorT (k r)
+--     fail msg = ErrorT $ return (Left (strMsg msg))
+
+instance (Monad m) => MonadError e (ErrorT e m) where
+    throwError l = ErrorT $ return (Left l)
+    m `catchError` h = ErrorT $ do
+                         a <- runErrorT m
+                         case a of
+                           Left l  -> runErrorT (h l)
+                           Right r -> return (Right r)
+
+
+instance MonadTrans (ErrorT e) where
+    lift m = ErrorT $ do
+               a <- m
+               return (Right a)
+
+
+{-
+instance (MonadError e m) => MonadError e (ReaderT r m) where
+    throwError = lift . throwError
+    m `catchError` h = ReaderT $ \r -> runReaderT m r
+                       `catchError` \e -> runReaderT (h e) r
+
+instance (MonadReader r m) => MonadReader r (ErrorT e m) where
+    ask = lift ask
+    local f m = ErrorT $ local f (runErrorT m)
+-}
+
+-- | use out monad transformer ErrorT
+
+type Eval3a α = ReaderT Env (ErrorT String Identity) α
+
+runEval3a :: Env -> Eval3a α -> Either String α
+runEval3a env ev = runIdentity (runErrorT (runReaderT ev env))
+
+eval3a :: Exp -> Eval3a Value
+eval3a (Lit i) = return $ IntVal i
+eval3a (Var n) = do env <- ask
+                    case Map.lookup n env of
+                      Nothing  -> throwError ("unbound variable: " ++ n)
+                      Just val -> return val
+eval3a (Plus e1 e2 ) = do e1' <- eval3a e1
+                          e2' <- eval3a e2
+                          case (e1', e2') of
+                            (IntVal i1 ,IntVal i2 ) -> return $ IntVal (i1 + i2 )
+                            _ ->  throwError "type error in addition"
+eval3a (Abs n e) = do env <- ask
+                      return $ FunVal env n e
+eval3a (App e1 e2 ) =
+    do val1 <- eval3a e1
+       val2 <- eval3a e2
+       case val1 of
+         FunVal env' n body -> local (const (Map.insert n val2 env')) (eval3a body)
+         _ ->  throwError "type error in application"
+
+
+run3a = runEval3a Map.empty (eval3a exampleExp)
+run3a_1 = runEval3a Map.empty (eval3a (Plus (Lit 1) (Abs "x" (Var "x"))))
+run3a_2 = runEval3a Map.empty (eval3a (Var "x"))
