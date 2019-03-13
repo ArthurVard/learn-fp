@@ -83,7 +83,7 @@ eval0 env (App e1 e2 ) = let val1 = eval0 env e1
                               FunVal env' n body -> eval0 (Map.insert n val2 env') body
 
 
-exampleExp = Lit 12 `Plus` (App (Abs "x" (Var "y")) (Lit 4 `Plus` Lit 2))
+exampleExp = Lit 12 `Plus` (App (Abs "x" (Var "x")) (Lit 4 `Plus` Lit 2))
 run0 = eval0 Map.empty exampleExp
 
 
@@ -330,3 +330,91 @@ eval3a (App e1 e2 ) =
 run3a = runEval3a Map.empty (eval3a exampleExp)
 run3a_1 = runEval3a Map.empty (eval3a (Plus (Lit 1) (Abs "x" (Var "x"))))
 run3a_2 = runEval3a Map.empty (eval3a (Var "x"))
+
+
+-----------------------------------------------------------------
+-- Adding State
+{-
+type Eval1 α = Identity α
+type Eval2 α = ErrorT String Identity α
+type Eval3 α = ReaderT Env (ExceptT String Identity) α
+type Eval3 α = ReaderT Env (ErrorT String Identity) α
+-}
+
+
+type Eval4 α = ReaderT Env (ExceptT String (StateT Integer Identity)) α
+
+
+runEval4 :: Env -> Integer -> Eval4 α -> (Either String α,Integer )
+runEval4 e s ev = runIdentity (runStateT (runExceptT (runReaderT ev e)) s)
+
+-- we will count the eval steps
+tick :: (Num s, MonadState s m) =>  m ()
+tick = do st <- get
+          put (st + 1)
+
+eval4 :: Exp -> Eval4 Value
+eval4 (Lit i) = do tick
+                   return $ IntVal i
+eval4 (Var x) = do env <- ask
+                   -- modify (+10)
+                   -- put 20
+                   case Map.lookup x env of
+                     Nothing -> throwError $ "key not found:" ++ x
+                     Just v  -> return v
+eval4 (Plus e1 e2) = do e1' <- eval4 e1
+                        e2' <- eval4 e2
+                        case e1' of
+                          IntVal a -> case e2' of
+                                         IntVal b -> return . IntVal $ a + b
+                                         _        -> throwError "type error"
+
+                          _ -> throwError "type error"
+
+eval4 (Abs n e) = do env <- ask
+                     return $ FunVal env n e
+
+
+
+eval4 (App e1 e2 ) =
+    do val1 <- eval4 e1
+       val2 <- eval4 e2
+       case val1 of
+         FunVal env' n body ->
+             local (const (Map.insert n val2 env')) (eval4 body)
+         _ ->  throwError "type error in application"
+
+
+run4 = runEval4 Map.empty 0 (eval4 exampleExp)
+run4_1 = runEval4 Map.empty 0 (eval4 (Plus (Lit 1) (Abs "x" (Var "x"))))
+run4_2 = runEval4 Map.empty 0 (eval4 (Var "x"))
+
+{-
+data Exp = Lit Integer
+         -- ^ literal integers (constants)
+         | Var Name
+         -- ^ variables
+         | Plus Exp Exp
+         -- ^ addition
+         | Abs Name Exp
+         -- ^ λ expressions (abstractions)
+         | App Exp Exp
+         -- ^ function application
+           deriving (Show)
+
+-- | values
+-- The Env component of a FunVal is the environment in which the corresponding
+-- λ-abstraction was evaluated.
+data Value = IntVal Integer
+           -- ^ integers
+           | FunVal Env Name Exp
+           -- ^ functions (closures).
+             deriving (Show)
+-}
+
+
+type Eval4a α = ReaderT Env (ErrorT String (StateT Integer Identity)) α
+
+
+runEval4a :: Env -> Integer -> Eval4a α -> (Either String α,Integer )
+runEval4a e s ev = runIdentity (runStateT (runErrorT (runReaderT ev e)) s)
