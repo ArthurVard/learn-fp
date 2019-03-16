@@ -1,6 +1,5 @@
-module Lib
-    ( someFunc
+module Scheme
+    ( module X
     ) where
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+import qualified Scheme.Parser as X
