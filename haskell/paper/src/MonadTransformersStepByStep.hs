@@ -4,19 +4,19 @@
 module MonadTransformersStepByStep where
 
 
-import           Control.Monad.Except
-import           Control.Monad.Identity
-import           Control.Monad.Reader
-import           Control.Monad.State
-import           Control.Monad.Writer
-
+import Control.Monad.Except
+import Control.Monad.Fail
+import Control.Monad.Identity
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Writer
 -- import           Control.Monad.Error    (Error (..))
 
-import           Data.Maybe
+import Data.Maybe
 
-import           Data.Text              (pack)
+import Data.Text (pack)
 
-import qualified Data.Map               as Map
+import qualified Data.Map as Map
 
 -- | very good paper to gain intuition about Monad Transformers and usa cases
 --
@@ -98,9 +98,11 @@ type Eval1 α = Identity α
 runEval1 :: Eval1 α -> α
 runEval1 ev = runIdentity ev
 
+instance MonadFail Identity where
+    fail = error "error in identity"
 
 -- eval1 :: Env -> Exp -> Eval1 Value
-eval1 :: Monad m =>  Env -> Exp  -> m Value
+eval1 :: (MonadFail m , Monad m) =>  Env -> Exp  -> m Value
 eval1 env (Lit i) = return $ IntVal i
 eval1 env (Var n) = case Map.lookup n env of
                       Just i  -> return i
@@ -157,7 +159,7 @@ eval2b env (Plus e1 e2 ) = do e1' <- eval2b env e1
                               e2' <- eval2b env e2
                               case (e1', e2') of
                                 (IntVal i1, IntVal i2 ) -> return $ IntVal (i1 + i2 )
-                                _ ->  throwError "type error"
+                                _                       ->  throwError "type error"
 
 eval2b env (Abs n e) = return $ FunVal env n e
 eval2b env (App e1 e2 ) =
@@ -203,7 +205,7 @@ eval2 env (Plus e1 e2 ) = do e1' <- eval2 env e1
                              e2' <- eval2 env e2
                              case (e1', e2') of
                                (IntVal i1 ,IntVal i2 ) -> return $ IntVal (i1 + i2 )
-                               _ -> throwError "type error in addition"
+                               _                       -> throwError "type error in addition"
 eval2 env (Abs n e) = return $ FunVal env n e
 eval2 env (App e1 e2 ) =
     do val1 <- eval2 env e1
@@ -236,7 +238,7 @@ eval3 (Plus e1 e2 ) = do e1' <- eval3 e1
                          e2' <- eval3 e2
                          case (e1', e2') of
                            (IntVal i1 ,IntVal i2 ) -> return $ IntVal (i1 + i2 )
-                           _ ->  throwError "type error in addition"
+                           _                       ->  throwError "type error in addition"
 eval3 (Abs n e) = do env <- ask
                      return $ FunVal env n e
 eval3 (App e1 e2 ) =
@@ -244,7 +246,7 @@ eval3 (App e1 e2 ) =
        val2 <- eval3 e2
        case val1 of
          FunVal env' n body -> local (const (Map.insert n val2 env')) (eval3 body)
-         _ ->  throwError "type error in application"
+         _                  ->  throwError "type error in application"
 
 
 run3 = runEval3 Map.empty (eval3 exampleExp)
@@ -316,7 +318,7 @@ eval3a (Plus e1 e2 ) = do e1' <- eval3a e1
                           e2' <- eval3a e2
                           case (e1', e2') of
                             (IntVal i1 ,IntVal i2 ) -> return $ IntVal (i1 + i2 )
-                            _ ->  throwError "type error in addition"
+                            _                       ->  throwError "type error in addition"
 eval3a (Abs n e) = do env <- ask
                       return $ FunVal env n e
 eval3a (App e1 e2 ) =
@@ -324,7 +326,7 @@ eval3a (App e1 e2 ) =
        val2 <- eval3a e2
        case val1 of
          FunVal env' n body -> local (const (Map.insert n val2 env')) (eval3a body)
-         _ ->  throwError "type error in application"
+         _                  ->  throwError "type error in application"
 
 
 run3a = runEval3a Map.empty (eval3a exampleExp)
