@@ -41,7 +41,7 @@ library
                       -fno-warn-unused-do-bind
                       -fno-warn-unused-imports
                       -fno-warn-type-defaults
-                      -ferror-spans
+
 
   default-extensions: NoImplicitPrelude
                       ScopedTypeVariables

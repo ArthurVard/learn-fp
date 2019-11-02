@@ -1,0 +1,4 @@
+* Parallel and Concurrent Haskell
+
+** Parallel Haskell Digest
+   https://www.well-typed.com/blog/tags/ph-digest/
